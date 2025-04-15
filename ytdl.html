@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViDown - YTDownloader</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e6f2ff 0%, #b3d9ff 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .logo {
+            color: #3B82F6;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 1rem;
+            background-color: rgba(59, 130, 246, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .input-container {
+            display: flex;
+            margin-bottom: 20px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        #url-input {
+            flex-grow: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 8px 0 0 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        #url-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        button {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #2563EB;
+            transform: translateY(-2px);
+        }
+
+        #search-btn {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .result-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3B82F6;
+        }
+
+        .result-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .result-container:hover::before {
+            left: 100%;
+        }
+
+        .video-info {
+            display: flex;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+
+        .thumbnail {
+            width: 200px;
+            height: 120px;
+            margin-right: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .thumbnail:hover img {
+            transform: scale(1.05);
+        }
+
+        .info {
+            flex-grow: 1;
+        }
+
+        .title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .download-options {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            padding: 12px 24px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #mp3-btn {
+            background-color: #10B981;
+        }
+
+        #mp3-btn:hover {
+            background-color: #059669;
+        }
+
+        #mp4-btn {
+            background-color: #3B82F6;
+        }
+
+        #mp4-btn:hover {
+            background-color: #2563EB;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            border-left-color: #3B82F6;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .error-message {
+            color: #EF4444;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+            background-color: rgba(239, 68, 68, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #EF4444;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 20px 0;
+            border-top: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            gap: 15px;
+        }
+
+        .social-links a {
+            color: #3B82F6;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            background-color: rgba(59, 130, 246, 0.1);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .social-links a:hover {
+            background-color: #3B82F6;
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .feature-cards {
+            display: flex;
+            justify-content: space-between;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        .feature-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border-left: 3px solid #3B82F6;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: #3B82F6;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .feature-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .video-info {
+                flex-direction: column;
+            }
+
+            .thumbnail {
+                width: 100%;
+                height: 180px;
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+
+            .download-options {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .feature-cards {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo"><i class="fab fa-youtube"></i>ViDown - YTDownloader</div>
+            <div class="tagline">Download YouTube videos as MP3 or MP4</div>
+        </header>
+
+        <div class="input-container">
+            <input type="text" id="url-input" placeholder="Paste YouTube URL here...">
+            <button id="search-btn"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <div class="error-message" id="error-message">
+            Invalid YouTube URL. Please check and try again.
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <div>Processing your request...</div>
+        </div>
+
+        <div class="result-container" id="result-container">
+            <div class="video-info">
+                <div class="thumbnail" id="thumbnail">
+                    <img src="/api/placeholder/200/120" alt="Video thumbnail" id="thumbnail-img">
+                </div>
+                <div class="info">
+                    <div class="title" id="video-title">Video Title</div>
+                </div>
+            </div>
+            <div class="download-options">
+                <button class="download-btn" id="mp3-btn">
+                    <i class="fas fa-music"></i>
+                    Download MP3
+                </button>
+                <button class="download-btn" id="mp4-btn">
+                    <i class="fas fa-video"></i>
+                    Download MP4
+                </button>
+            </div>
+        </div>
+
+        <div class="feature-cards">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="feature-title">Fast & Easy</div>
+                <div class="feature-text">Download videos in seconds with our lightning-fast conversion process.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="feature-title">High Quality</div>
+                <div class="feature-text">Get the highest quality MP3 and MP4 files available.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="feature-title">Secure</div>
+                <div class="feature-text">No registration required. We don't store any of your data.</div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-github"></i></a>
+                <a href="#"><i class="fab fa-linkedin"></i></a>
+                <a href="#"><i class="fas fa-envelope"></i></a>
+            </div>
+            &copy; By.❤️HengkiDev 2025 ViDown - All Rights Reserved | For educational purposes only
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('url-input');
+            const searchBtn = document.getElementById('search-btn');
+            const resultContainer = document.getElementById('result-container');
+            const loader = document.getElementById('loader');
+            const errorMessage = document.getElementById('error-message');
+            const videoTitle = document.getElementById('video-title');
+            const thumbnailImg = document.getElementById('thumbnail-img');
+            const mp3Btn = document.getElementById('mp3-btn');
+            const mp4Btn = document.getElementById('mp4-btn');
+
+            // Extract YouTube video ID from URL with multiple patterns
+            function extractVideoId(url) {
+                // Handle different YouTube URL formats
+                let patterns = [
+                    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/i,
+                    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/i,
+                    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([^?]+)/i,
+                    /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?]+)/i,
+                    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([^?]+)/i,
+                    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/live\/([^?]+)/i
+                ];
+
+                for (let pattern of patterns) {
+                    let match = url.match(pattern);
+                    if (match && match[1]) {
+                        return match[1];
+                    }
+                }
+
+                return null;
+            }
+
+            // Get video thumbnail from ID
+            function getVideoThumbnail(videoId) {
+                return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+            }
+
+            // Process YouTube URL
+            async function processUrl(url) {
+                const videoId = extractVideoId(url);
+                
+                if (!videoId) {
+                    showError("Invalid YouTube URL. Please check and try again.");
+                    return;
+                }
+
+                // Show loader and hide previous results/errors
+                loader.style.display = 'block';
+                resultContainer.style.display = 'none';
+                errorMessage.style.display = 'none';
+
+                try {
+                    // Set thumbnail
+                    thumbnailImg.src = getVideoThumbnail(videoId);
+                    
+                    // For MP3
+                    try {
+                        const mp3Response = await fetch(`https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(url)}`);
+                        const mp3Data = await mp3Response.json();
+                        
+                        if (mp3Data.status) {
+                            // Set video title
+                            videoTitle.textContent = mp3Data.data.title;
+                            
+                            // Update MP3 download button
+                            mp3Btn.onclick = function() {
+                                window.open(mp3Data.data.dl, '_blank');
+                            };
+                            mp3Btn.disabled = false;
+                            mp3Btn.innerHTML = '<i class="fas fa-music"></i> Download MP3';
+                        } else {
+                            mp3Btn.disabled = true;
+                            mp3Btn.innerHTML = '<i class="fas fa-times-circle"></i> MP3 not available';
+                        }
+                    } catch (mp3Error) {
+                        console.error("MP3 Error:", mp3Error);
+                        mp3Btn.disabled = true;
+                        mp3Btn.innerHTML = '<i class="fas fa-times-circle"></i> MP3 not available';
+                    }
+                    
+                    // For MP4
+                    try {
+                        const mp4Response = await fetch(`https://api.siputzx.my.id/api/d/ytmp4?url=${encodeURIComponent(url)}`);
+                        const mp4Data = await mp4Response.json();
+                        
+                        if (mp4Data.status) {
+                            // If title wasn't set by MP3, use MP4 title
+                            if (!videoTitle.textContent && mp4Data.data.title) {
+                                videoTitle.textContent = mp4Data.data.title;
+                            }
+                            
+                            // Update MP4 download button
+                            mp4Btn.onclick = function() {
+                                window.open(mp4Data.data.dl, '_blank');
+                            };
+                            mp4Btn.disabled = false;
+                            mp4Btn.innerHTML = '<i class="fas fa-video"></i> Download MP4';
+                        } else {
+                            mp4Btn.disabled = true;
+                            mp4Btn.innerHTML = '<i class="fas fa-times-circle"></i> MP4 not available';
+                        }
+                    } catch (mp4Error) {
+                        console.error("MP4 Error:", mp4Error);
+                        mp4Btn.disabled = true;
+                        mp4Btn.innerHTML = '<i class="fas fa-times-circle"></i> MP4 not available';
+                    }
+                    
+                    // If neither format is available or no title was found
+                    if (mp3Btn.disabled && mp4Btn.disabled) {
+                        showError("This video cannot be downloaded. Please try another video.");
+                        return;
+                    }
+                    
+                    if (!videoTitle.textContent) {
+                        videoTitle.textContent = "YouTube Video";
+                    }
+                    
+                    // Show results
+                    loader.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error("Error:", error);
+                    loader.style.display = 'none';
+                    showError("Failed to process the video. Please try again later.");
+                }
+            }
+
+            // Show error message
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                loader.style.display = 'none';
+                resultContainer.style.display = 'none';
+            }
+
+            // Event listeners
+            searchBtn.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                if (url) {
+                    processUrl(url);
+                } else {
+                    showError("Please enter a YouTube URL");
+                }
+            });
+
+            urlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const url = urlInput.value.trim();
+                    if (url) {
+                        processUrl(url);
+                    } else {
+                        showError("Please enter a YouTube URL");
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
