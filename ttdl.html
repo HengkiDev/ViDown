@@ -962,32 +962,7 @@
             const durationBadge = document.getElementById('durationBadge');
 
             const tiktokAPI = "https://api.siputzx.my.id/api/d/tiktok/v2";
-
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                
-                @keyframes slideOut {
-                    from {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                    to {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
+            const proxyServer = "https://corsproxy.io/?";
 
             function formatNumber(num) {
                 if (num >= 1000000) {
@@ -1006,24 +981,51 @@
                 return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
             }
 
-            function showDownloadNotification(fileName) {
-                const existingNotification = document.getElementById('downloadNotification');
-                if (existingNotification) {
-                    existingNotification.remove();
-                }
+            function downloadFile(url, fileName) {
+                const timestamp = Date.now();
+                const random = Math.floor(Math.random() * 1000);
+                const finalFileName = fileName || `tiktok-video-${timestamp}-${random}.mp4`;
                 
+                fetch(proxyServer + encodeURIComponent(url))
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = finalFileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(blobUrl);
+                        document.body.removeChild(a);
+                        
+                        showDownloadNotification(finalFileName);
+                    })
+                    .catch(error => {
+                        console.error('Download failed:', error);
+                        const fallbackLink = document.createElement('a');
+                        fallbackLink.href = url;
+                        fallbackLink.download = finalFileName;
+                        fallbackLink.target = '_blank';
+                        document.body.appendChild(fallbackLink);
+                        fallbackLink.click();
+                        document.body.removeChild(fallbackLink);
+                        
+                        showDownloadNotification(finalFileName);
+                    });
+            }
+
+            function showDownloadNotification(fileName) {
                 const notification = document.createElement('div');
-                notification.id = 'downloadNotification';
                 notification.style.cssText = `
                     position: fixed;
-                    bottom: 20px;
+                    top: 20px;
                     right: 20px;
-                    background-color: #2563EB;
+                    background: #10b981;
                     color: white;
-                    padding: 12px 20px;
+                    padding: 15px 25px;
                     border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                    z-index: 9999;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 10000;
                     animation: slideIn 0.3s ease;
                     display: flex;
                     align-items: center;
@@ -1032,41 +1034,20 @@
                 `;
                 
                 notification.innerHTML = `
-                    <i class="fas fa-download" style="font-size: 1.2rem;"></i>
-                    <span>Downloading: ${fileName}</span>
+                    <i class="fas fa-check-circle"></i>
+                    <span>Download started: ${fileName}</span>
                 `;
                 
                 document.body.appendChild(notification);
                 
                 setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.style.animation = 'slideOut 0.3s ease';
-                        setTimeout(() => {
-                            if (notification.parentNode) {
-                                notification.remove();
-                            }
-                        }, 300);
-                    }
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
                 }, 3000);
-            }
-
-            function forceDownload(url, fileName) {
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName || 'tiktok-video.mp4';
-                a.target = '_blank';
-                a.style.display = 'none';
-                a.setAttribute('download', '');
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                }, 100);
-                showDownloadNotification(fileName);
-            }
-
-            function downloadVideoDirect(url, fileName) {
-                forceDownload(url, fileName);
             }
 
             function setupDownloadButtons(videoData) {
@@ -1076,10 +1057,9 @@
                     const standardBtn = document.createElement('button');
                     standardBtn.className = 'download-btn';
                     standardBtn.innerHTML = '<i class="fas fa-video"></i> Download Video (SD)';
-                    standardBtn.addEventListener('click', () => {
-                        const fileName = `tiktok-video-${Date.now()}.mp4`;
-                        downloadVideoDirect(videoData.no_watermark_link, fileName);
-                    });
+                    standardBtn.onclick = () => {
+                        downloadFile(videoData.no_watermark_link, 'tiktok-video.mp4');
+                    };
                     downloadButtons.appendChild(standardBtn);
                 }
                 
@@ -1087,10 +1067,9 @@
                     const hdBtn = document.createElement('button');
                     hdBtn.className = 'download-btn';
                     hdBtn.innerHTML = '<i class="fas fa-hd"></i> Download Video (HD)';
-                    hdBtn.addEventListener('click', () => {
-                        const fileName = `tiktok-video-hd-${Date.now()}.mp4`;
-                        downloadVideoDirect(videoData.no_watermark_link_hd, fileName);
-                    });
+                    hdBtn.onclick = () => {
+                        downloadFile(videoData.no_watermark_link_hd, 'tiktok-video-hd.mp4');
+                    };
                     downloadButtons.appendChild(hdBtn);
                 }
                 
@@ -1098,32 +1077,29 @@
                     const audioBtn = document.createElement('button');
                     audioBtn.className = 'download-btn audio-download';
                     audioBtn.innerHTML = '<i class="fas fa-music"></i> Download Audio';
-                    audioBtn.addEventListener('click', () => {
-                        const fileName = `tiktok-audio-${Date.now()}.mp3`;
-                        downloadVideoDirect(videoData.music_link, fileName);
-                    });
+                    audioBtn.onclick = () => {
+                        downloadFile(videoData.music_link, 'tiktok-audio.mp3');
+                    };
                     downloadButtons.appendChild(audioBtn);
                 }
                 
                 if (videoData.watermark_link && videoData.watermark_link.trim() !== "") {
                     const watermarkBtn = document.createElement('button');
                     watermarkBtn.className = 'download-btn';
-                    watermarkBtn.innerHTML = '<i class="fas fa-water"></i> Download with Watermark';
-                    watermarkBtn.addEventListener('click', () => {
-                        const fileName = `tiktok-video-watermark-${Date.now()}.mp4`;
-                        downloadVideoDirect(videoData.watermark_link, fileName);
-                    });
+                    watermarkBtn.innerHTML = '<i class="fas fa-water"></i> With Watermark';
+                    watermarkBtn.onclick = () => {
+                        downloadFile(videoData.watermark_link, 'tiktok-watermark.mp4');
+                    };
                     downloadButtons.appendChild(watermarkBtn);
                 }
                 
                 if (videoData.cover_link && videoData.cover_link.trim() !== "") {
                     const coverBtn = document.createElement('button');
                     coverBtn.className = 'download-btn';
-                    coverBtn.innerHTML = '<i class="fas fa-image"></i> Download Cover';
-                    coverBtn.addEventListener('click', () => {
-                        const fileName = `tiktok-cover-${Date.now()}.jpg`;
-                        downloadVideoDirect(videoData.cover_link, fileName);
-                    });
+                    coverBtn.innerHTML = '<i class="fas fa-image"></i> Cover Image';
+                    coverBtn.onclick = () => {
+                        downloadFile(videoData.cover_link, 'tiktok-cover.jpg');
+                    };
                     downloadButtons.appendChild(coverBtn);
                 }
             }
@@ -1180,11 +1156,6 @@
                 if (videoData.no_watermark_link) {
                     videoPreview.src = videoData.no_watermark_link;
                     setupDownloadButtons(videoData);
-                    
-                    const descriptionElement = document.querySelector('.description-box');
-                    if (descriptionElement) {
-                        descriptionElement.remove();
-                    }
                     
                     if (videoData.text && videoData.text.trim() !== "") {
                         const descriptionBox = document.createElement('div');
