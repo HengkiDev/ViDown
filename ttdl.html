@@ -963,6 +963,7 @@
             const durationBadge = document.getElementById('durationBadge');
 
             const tiktokAPI = "https://api.siputzx.my.id/api/d/tiktok";
+            const tiktokAPI_old = "https://api.siputzx.my.id/api/d/tiktok/v2";
 
             function formatNumber(num) {
                 if (num >= 1000000) {
@@ -1018,37 +1019,44 @@
                 
                 hashtagsContainer.style.display = 'none';
                 
+                downloadButtons.innerHTML = '';
+                
                 if (videoData.media && videoData.media.length > 0) {
-                    const firstVideo = videoData.media[0];
-                    if (firstVideo.url) {
-                        videoPreview.src = firstVideo.url;
+                    const backupHD = videoData.media.find(m => m.quality === 'HD' && m.backup);
+                    const standardVideo = videoData.media.find(m => m.quality === 'SD');
+                    
+                    let previewUrl = '';
+                    
+                    if (backupHD && backupHD.backup) {
+                        previewUrl = backupHD.backup;
+                        
+                        const hdBtn = document.createElement('button');
+                        hdBtn.className = 'download-btn';
+                        hdBtn.innerHTML = '<i class="fas fa-hd"></i> HD Quality';
+                        hdBtn.addEventListener('click', () => {
+                            downloadFile(backupHD.backup, 'tiktok-hd-video.mp4');
+                        });
+                        downloadButtons.appendChild(hdBtn);
                     }
                     
-                    downloadButtons.innerHTML = '';
+                    if (standardVideo && standardVideo.url) {
+                        if (!previewUrl) previewUrl = standardVideo.url;
+                        
+                        const standardBtn = document.createElement('button');
+                        standardBtn.className = 'download-btn';
+                        standardBtn.innerHTML = '<i class="fas fa-video"></i> Standard Quality';
+                        standardBtn.addEventListener('click', () => {
+                            downloadFile(standardVideo.url, 'tiktok-standard-video.mp4');
+                        });
+                        downloadButtons.appendChild(standardBtn);
+                    }
+                    
+                    if (previewUrl) {
+                        videoPreview.src = previewUrl;
+                    }
                     
                     videoData.media.forEach((media, index) => {
-                        if (media.url) {
-                            const btn = document.createElement('button');
-                            btn.className = 'download-btn';
-                            
-                            if (media.quality === 'HD') {
-                                btn.innerHTML = '<i class="fas fa-hd"></i> HD Quality';
-                                btn.addEventListener('click', () => {
-                                    downloadFile(media.url, `tiktok-hd-video.mp4`);
-                                });
-                            } else {
-                                btn.innerHTML = '<i class="fas fa-video"></i> Standard Quality';
-                                btn.addEventListener('click', () => {
-                                    downloadFile(media.url, `tiktok-standard-video.mp4`);
-                                });
-                            }
-                            
-                            downloadButtons.appendChild(btn);
-                        }
-                    });
-                    
-                    videoData.media.forEach((media, index) => {
-                        if (media.backup) {
+                        if (media.backup && media !== backupHD) {
                             const backupBtn = document.createElement('button');
                             backupBtn.className = 'download-btn';
                             backupBtn.innerHTML = `<i class="fas fa-download"></i> Backup ${media.quality || 'Quality'}`;
@@ -1058,10 +1066,116 @@
                             downloadButtons.appendChild(backupBtn);
                         }
                     });
+                    
+                    fetchOldAPIData(urlInput.value.trim());
                 }
                 
                 resultContainer.style.display = 'block';
                 return true;
+            }
+
+            function processOldAPIData(oldData) {
+                if (oldData.status && oldData.data) {
+                    const oldVideoData = oldData.data;
+                    
+                    if (oldVideoData.author_nickname) {
+                        creatorName.textContent = oldVideoData.author_nickname;
+                    }
+                    
+                    if (oldVideoData.author_unique_id) {
+                        creatorUsername.textContent = '@' + oldVideoData.author_unique_id;
+                    }
+                    
+                    if (oldVideoData.author_cover_link) {
+                        creatorAvatar.src = oldVideoData.author_cover_link;
+                    }
+                    
+                    if (oldVideoData.like_count) {
+                        likeCount.textContent = formatNumber(parseInt(oldVideoData.like_count) || 0);
+                    }
+                    
+                    if (oldVideoData.play_count) {
+                        playCount.textContent = formatNumber(parseInt(oldVideoData.play_count) || 0);
+                    }
+                    
+                    if (oldVideoData.comment_count) {
+                        commentCount.textContent = formatNumber(parseInt(oldVideoData.comment_count) || 0);
+                    }
+                    
+                    if (oldVideoData.share_count) {
+                        shareCount.textContent = formatNumber(parseInt(oldVideoData.share_count) || 0);
+                    }
+                    
+                    if (oldVideoData.duration) {
+                        const durationMs = parseInt(oldVideoData.duration);
+                        durationBadge.textContent = formatDuration(durationMs);
+                    }
+                    
+                    if (oldVideoData.text && oldVideoData.text.includes('#')) {
+                        hashtags.innerHTML = '';
+                        const hashtagMatches = oldVideoData.text.match(/#[\w\u4e00-\u9fff]+/g);
+                        if (hashtagMatches) {
+                            hashtagMatches.forEach(tag => {
+                                const hashtagElement = document.createElement('span');
+                                hashtagElement.className = 'hashtag';
+                                hashtagElement.textContent = tag;
+                                hashtags.appendChild(hashtagElement);
+                            });
+                            hashtagsContainer.style.display = 'block';
+                        }
+                    }
+                    
+                    if (oldVideoData.music_link && oldVideoData.music_link.trim() !== "") {
+                        const audioBtn = document.createElement('button');
+                        audioBtn.className = 'download-btn audio-download';
+                        audioBtn.innerHTML = '<i class="fas fa-music"></i> Audio Track';
+                        audioBtn.addEventListener('click', () => {
+                            downloadFile(oldVideoData.music_link, 'tiktok-audio.mp3');
+                        });
+                        downloadButtons.appendChild(audioBtn);
+                    }
+                    
+                    if (oldVideoData.cover_link && oldVideoData.cover_link.trim() !== "") {
+                        const coverBtn = document.createElement('button');
+                        coverBtn.className = 'download-btn';
+                        coverBtn.innerHTML = '<i class="fas fa-image"></i> Cover Image';
+                        coverBtn.addEventListener('click', () => {
+                            downloadFile(oldVideoData.cover_link, 'tiktok-cover.jpg');
+                        });
+                        downloadButtons.appendChild(coverBtn);
+                    }
+                    
+                    const descriptionElement = document.querySelector('.description-box');
+                    if (descriptionElement) {
+                        descriptionElement.remove();
+                    }
+                    
+                    if (oldVideoData.text && oldVideoData.text.trim() !== "") {
+                        const descriptionBox = document.createElement('div');
+                        descriptionBox.className = 'hashtags-box description-box';
+                        descriptionBox.innerHTML = `<i class="fas fa-file-alt"></i><strong>Description:</strong><br><div style="margin-top: 8px; font-size: 14px; line-height: 1.4;">${oldVideoData.text.replace(/\n/g, '<br>')}</div>`;
+                        const videoDetails = document.querySelector('.video-details');
+                        if (videoDetails) {
+                            videoDetails.insertBefore(descriptionBox, hashtagsContainer);
+                        }
+                    }
+                }
+            }
+
+            function fetchOldAPIData(tiktokUrl) {
+                fetch(`${tiktokAPI_old}?url=${encodeURIComponent(tiktokUrl)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        processOldAPIData(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching old API data:', error);
+                    });
             }
 
             searchBtn.addEventListener('click', function() {
@@ -1077,6 +1191,7 @@
                 errorMessage.style.display = 'none';
                 
                 downloadButtons.innerHTML = '';
+                hashtags.innerHTML = '';
                 
                 creatorAvatar.src = '';
                 creatorName.textContent = '';
