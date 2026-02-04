@@ -323,6 +323,7 @@
             margin-right: 20px;
             object-fit: cover;
             border: 3px solid #dbeafe;
+            background-color: #f0f7ff;
         }
 
         .creator-details {
@@ -961,7 +962,7 @@
             const creatorUsername = document.getElementById('creatorUsername');
             const durationBadge = document.getElementById('durationBadge');
 
-            const tiktokAPI = "https://api.siputzx.my.id/api/d/tiktok/v2";
+            const tiktokAPI = "https://api.siputzx.my.id/api/d/tiktok";
 
             function formatNumber(num) {
                 if (num >= 1000000) {
@@ -999,113 +1000,64 @@
                 
                 loading.style.display = 'none';
                 
-                likeCount.textContent = formatNumber(parseInt(videoData.like_count) || 0);
-                playCount.textContent = formatNumber(parseInt(videoData.play_count) || 0);
-                commentCount.textContent = formatNumber(parseInt(videoData.comment_count) || 0);
-                shareCount.textContent = formatNumber(parseInt(videoData.share_count) || 0);
+                likeCount.textContent = formatNumber(0);
+                playCount.textContent = formatNumber(0);
+                commentCount.textContent = formatNumber(0);
+                shareCount.textContent = formatNumber(0);
                 
-                if (videoData.author_nickname) {
-                    creatorName.textContent = videoData.author_nickname;
+                if (videoData.author) {
+                    creatorName.textContent = videoData.author;
+                    creatorUsername.textContent = '@' + videoData.author;
                 }
                 
-                if (videoData.author_unique_id) {
-                    creatorUsername.textContent = '@' + videoData.author_unique_id;
+                if (videoData.thumbnail) {
+                    creatorAvatar.src = videoData.thumbnail;
                 }
                 
-                if (videoData.author_cover_link) {
-                    creatorAvatar.src = videoData.author_cover_link;
-                }
+                durationBadge.textContent = '0:00';
                 
-                if (videoData.duration) {
-                    const durationMs = parseInt(videoData.duration);
-                    durationBadge.textContent = formatDuration(durationMs);
-                }
+                hashtagsContainer.style.display = 'none';
                 
-                if (videoData.text && videoData.text.includes('#')) {
-                    hashtags.innerHTML = '';
-                    const hashtagMatches = videoData.text.match(/#[\w\u4e00-\u9fff]+/g);
-                    if (hashtagMatches) {
-                        hashtagMatches.forEach(tag => {
-                            const hashtagElement = document.createElement('span');
-                            hashtagElement.className = 'hashtag';
-                            hashtagElement.textContent = tag;
-                            hashtags.appendChild(hashtagElement);
-                        });
-                        hashtagsContainer.style.display = 'block';
-                    } else {
-                        hashtagsContainer.style.display = 'none';
+                if (videoData.media && videoData.media.length > 0) {
+                    const firstVideo = videoData.media[0];
+                    if (firstVideo.url) {
+                        videoPreview.src = firstVideo.url;
                     }
-                } else {
-                    hashtagsContainer.style.display = 'none';
-                }
-                
-                if (videoData.no_watermark_link) {
-                    videoPreview.src = videoData.no_watermark_link;
                     
                     downloadButtons.innerHTML = '';
                     
-                    const standardBtn = document.createElement('button');
-                    standardBtn.className = 'download-btn';
-                    standardBtn.innerHTML = '<i class="fas fa-video"></i> Standard Quality';
-                    standardBtn.addEventListener('click', () => {
-                        downloadFile(videoData.no_watermark_link, `tiktok-${videoData.itemId || 'video'}.mp4`);
-                    });
-                    downloadButtons.appendChild(standardBtn);
-                    
-                    if (videoData.no_watermark_link_hd && videoData.no_watermark_link_hd !== videoData.no_watermark_link) {
-                        const hdBtn = document.createElement('button');
-                        hdBtn.className = 'download-btn';
-                        hdBtn.innerHTML = '<i class="fas fa-hd"></i> HD Quality';
-                        hdBtn.addEventListener('click', () => {
-                            downloadFile(videoData.no_watermark_link_hd, `tiktok-${videoData.itemId || 'video'}-HD.mp4`);
-                        });
-                        downloadButtons.appendChild(hdBtn);
-                    }
-                    
-                    if (videoData.music_link && videoData.music_link.trim() !== "") {
-                        const audioBtn = document.createElement('button');
-                        audioBtn.className = 'download-btn audio-download';
-                        audioBtn.innerHTML = '<i class="fas fa-music"></i> Audio Track';
-                        audioBtn.addEventListener('click', () => {
-                            downloadFile(videoData.music_link, `tiktok-${videoData.itemId || 'audio'}.mp3`);
-                        });
-                        downloadButtons.appendChild(audioBtn);
-                    }
-                    
-                    if (videoData.watermark_link && videoData.watermark_link.trim() !== "") {
-                        const watermarkBtn = document.createElement('button');
-                        watermarkBtn.className = 'download-btn';
-                        watermarkBtn.innerHTML = '<i class="fas fa-water"></i> With Watermark';
-                        watermarkBtn.addEventListener('click', () => {
-                            downloadFile(videoData.watermark_link, `tiktok-${videoData.itemId || 'video'}-watermark.mp4`);
-                        });
-                        downloadButtons.appendChild(watermarkBtn);
-                    }
-                    
-                    if (videoData.cover_link && videoData.cover_link.trim() !== "") {
-                        const coverBtn = document.createElement('button');
-                        coverBtn.className = 'download-btn';
-                        coverBtn.innerHTML = '<i class="fas fa-image"></i> Cover Image';
-                        coverBtn.addEventListener('click', () => {
-                            downloadFile(videoData.cover_link, `tiktok-${videoData.itemId || 'cover'}.jpg`);
-                        });
-                        downloadButtons.appendChild(coverBtn);
-                    }
-                    
-                    const descriptionElement = document.querySelector('.description-box');
-                    if (descriptionElement) {
-                        descriptionElement.remove();
-                    }
-                    
-                    if (videoData.text && videoData.text.trim() !== "") {
-                        const descriptionBox = document.createElement('div');
-                        descriptionBox.className = 'hashtags-box description-box';
-                        descriptionBox.innerHTML = `<i class="fas fa-file-alt"></i><strong>Description:</strong><br><div style="margin-top: 8px; font-size: 14px; line-height: 1.4;">${videoData.text.replace(/\n/g, '<br>')}</div>`;
-                        const videoDetails = document.querySelector('.video-details');
-                        if (videoDetails) {
-                            videoDetails.insertBefore(descriptionBox, hashtagsContainer);
+                    videoData.media.forEach((media, index) => {
+                        if (media.url) {
+                            const btn = document.createElement('button');
+                            btn.className = 'download-btn';
+                            
+                            if (media.quality === 'HD') {
+                                btn.innerHTML = '<i class="fas fa-hd"></i> HD Quality';
+                                btn.addEventListener('click', () => {
+                                    downloadFile(media.url, `tiktok-hd-video.mp4`);
+                                });
+                            } else {
+                                btn.innerHTML = '<i class="fas fa-video"></i> Standard Quality';
+                                btn.addEventListener('click', () => {
+                                    downloadFile(media.url, `tiktok-standard-video.mp4`);
+                                });
+                            }
+                            
+                            downloadButtons.appendChild(btn);
                         }
-                    }
+                    });
+                    
+                    videoData.media.forEach((media, index) => {
+                        if (media.backup) {
+                            const backupBtn = document.createElement('button');
+                            backupBtn.className = 'download-btn';
+                            backupBtn.innerHTML = `<i class="fas fa-download"></i> Backup ${media.quality || 'Quality'}`;
+                            backupBtn.addEventListener('click', () => {
+                                downloadFile(media.backup, `tiktok-backup-${index}.mp4`);
+                            });
+                            downloadButtons.appendChild(backupBtn);
+                        }
+                    });
                 }
                 
                 resultContainer.style.display = 'block';
